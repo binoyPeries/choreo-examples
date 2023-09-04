@@ -46,8 +46,7 @@ type Key record {
 };
 
 http:JwtValidatorConfig config = {
-    issuer: "wso2",
-    audience: "choreo",
+    issuer: "https://sts.preview-dv.choreo.dev:443/oauth2/token",
     signatureConfig: {
         jwksConfig: {
             url: "https://gateway.e1-us-east-azure.choreoapis.dev/.wellknown/jwks"
@@ -65,6 +64,13 @@ const string DEFAULT_USER = "default";
 
 service /readinglist on new http:Listener(9090) {
 
+    // @http:ResourceConfig {
+    //     auth: [
+    //         {
+    //             jwtValidatorConfig: config
+    //         }
+    //     ]
+    // }
     resource function get books(http:Headers headers) returns Book[]|http:BadRequest|error {
         map<Book>|http:BadRequest usersBooks = check getUsersBooks(headers);
         if (usersBooks is map<Book>) {
@@ -108,6 +114,7 @@ function getUsersBooks(http:Headers headers) returns map<Book>|http:BadRequest|e
         io:println("Token is valid!");
         io:println("Claims: ", result);
     } else {
+        io:println(result);
         http:BadRequest badRequest = {
             body: {
                 "error": "Bad Request",
@@ -116,6 +123,17 @@ function getUsersBooks(http:Headers headers) returns map<Book>|http:BadRequest|e
         };
         return badRequest;
     }
+
+    // string|error jwtAssertion = headers.getHeader("x-jwt-assertion");
+    // if (jwtAssertion is error) {
+    //     http:BadRequest badRequest = {
+    //         body: {
+    //             "error": "Bad Request",
+    //             "error_description": "Error while getting the JWT token"
+    //         }
+    //     };
+    //     return badRequest;
+    // }
 
     [jwt:Header, jwt:Payload] [_, payload] = check jwt:decode(jwtAssertion);
     string username = payload.sub is string ? <string>payload.sub : DEFAULT_USER;
