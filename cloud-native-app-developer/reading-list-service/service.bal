@@ -17,6 +17,7 @@
 import ballerina/uuid;
 import ballerina/http;
 import ballerina/jwt;
+import ballerina/io;
 
 enum Status {
     reading = "reading",
@@ -35,6 +36,30 @@ type Book record {|
     string id;
 |};
 
+type Key record {
+    string kty;
+    string e;
+    string use;
+    string kid;
+    string alg;
+    string n;
+};
+
+http:JwtValidatorConfig config = {
+    issuer: "wso2",
+    audience: "choreo",
+    signatureConfig: {
+        jwksConfig: {
+            url: "https://gateway.e1-us-east-azure.choreoapis.dev/.wellknown/jwks"
+        }
+    }
+
+};
+
+type JwksRecord record {
+    Key[] keys;
+};
+
 map<map<Book>> books = {};
 const string DEFAULT_USER = "default";
 
@@ -49,7 +74,7 @@ service /readinglist on new http:Listener(9090) {
     }
 
     resource function post books(http:Headers headers,
-                                 @http:Payload BookItem newBook) returns http:Created|http:BadRequest|error {
+            @http:Payload BookItem newBook) returns http:Created|http:BadRequest|error {
 
         string bookId = uuid:createType1AsString();
         map<Book>|http:BadRequest usersBooks = check getUsersBooks(headers);
@@ -61,7 +86,7 @@ service /readinglist on new http:Listener(9090) {
     }
 
     resource function delete books(http:Headers headers,
-                                   string id) returns http:Ok|http:BadRequest|error? {
+            string id) returns http:Ok|http:BadRequest|error? {
         map<Book>|http:BadRequest usersBooks = check getUsersBooks(headers);
         if (usersBooks is map<Book>) {
             _ = usersBooks.remove(id);
@@ -74,21 +99,28 @@ service /readinglist on new http:Listener(9090) {
 // This function is used to get the books of the user who is logged in.
 // User information is extracted from the JWT token.
 function getUsersBooks(http:Headers headers) returns map<Book>|http:BadRequest|error {
-        string|error jwtAssertion = headers.getHeader("x-jwt-assertion");
-        if (jwtAssertion is error) {
-            http:BadRequest badRequest = {
-                body: {
-                    "error": "Bad Request",
-                    "error_description": "Error while getting the JWT token"
-                }
-            };
-            return badRequest;
-        }
 
-        [jwt:Header, jwt:Payload] [_, payload] = check jwt:decode(jwtAssertion);
-        string username = payload.sub is string ? <string>payload.sub : DEFAULT_USER;
-        if (books[username] is ()) {
-            books[username] = {};
-        }
-        return <map<Book>>books[username];
+    string jwtAssertion = check headers.getHeader("x-jwt-assertion");
+
+    jwt:Payload|jwt:Error result = jwt:validate(jwtAssertion, config);
+
+    if (result is jwt:Payload) {
+        io:println("Token is valid!");
+        io:println("Claims: ", result);
+    } else {
+        http:BadRequest badRequest = {
+            body: {
+                "error": "Bad Request",
+                "error_description": "Error while getting the JWT token"
+            }
+        };
+        return badRequest;
     }
+
+    [jwt:Header, jwt:Payload] [_, payload] = check jwt:decode(jwtAssertion);
+    string username = payload.sub is string ? <string>payload.sub : DEFAULT_USER;
+    if (books[username] is ()) {
+        books[username] = {};
+    }
+    return <map<Book>>books[username];
+}
