@@ -17,7 +17,6 @@
 import ballerina/uuid;
 import ballerina/http;
 import ballerina/jwt;
-import ballerina/io;
 
 enum Status {
     reading = "reading",
@@ -64,13 +63,13 @@ const string DEFAULT_USER = "default";
 
 service /readinglist on new http:Listener(9090) {
 
-    // @http:ResourceConfig {
-    //     auth: [
-    //         {
-    //             jwtValidatorConfig: config
-    //         }
-    //     ]
-    // }
+    @http:ResourceConfig {
+        auth: [
+            {
+                jwtValidatorConfig: config
+            }
+        ]
+    }
     resource function get books(http:Headers headers) returns Book[]|http:BadRequest|error {
         map<Book>|http:BadRequest usersBooks = check getUsersBooks(headers);
         if (usersBooks is map<Book>) {
@@ -106,26 +105,15 @@ service /readinglist on new http:Listener(9090) {
 // User information is extracted from the JWT token.
 function getUsersBooks(http:Headers headers) returns map<Book>|http:BadRequest|error {
 
-    string jwtAssertion = check headers.getHeader("x-jwt-assertion");
-    io:println(jwtAssertion);
-    jwt:Payload|jwt:Error result = jwt:validate(jwtAssertion, config);
+    // string jwtAssertion = check headers.getHeader("x-jwt-assertion");
+    // io:println(jwtAssertion);
+    // jwt:Payload|jwt:Error result = jwt:validate(jwtAssertion, config);
 
-    if (result is jwt:Payload) {
-        io:println("Token is valid!");
-        io:println("Claims: ", result);
-    } else {
-        io:println(result);
-        http:BadRequest badRequest = {
-            body: {
-                "error": "Bad Request",
-                "error_description": "Error while getting the JWT token"
-            }
-        };
-        return badRequest;
-    }
-
-    // string|error jwtAssertion = headers.getHeader("x-jwt-assertion");
-    // if (jwtAssertion is error) {
+    // if (result is jwt:Payload) {
+    //     io:println("Token is valid!");
+    //     io:println("Claims: ", result);
+    // } else {
+    //     io:println(result);
     //     http:BadRequest badRequest = {
     //         body: {
     //             "error": "Bad Request",
@@ -134,6 +122,17 @@ function getUsersBooks(http:Headers headers) returns map<Book>|http:BadRequest|e
     //     };
     //     return badRequest;
     // }
+
+    string|error jwtAssertion = headers.getHeader("x-jwt-assertion");
+    if (jwtAssertion is error) {
+        http:BadRequest badRequest = {
+            body: {
+                "error": "Bad Request",
+                "error_description": "Error while getting the JWT token"
+            }
+        };
+        return badRequest;
+    }
 
     [jwt:Header, jwt:Payload] [_, payload] = check jwt:decode(jwtAssertion);
     string username = payload.sub is string ? <string>payload.sub : DEFAULT_USER;
