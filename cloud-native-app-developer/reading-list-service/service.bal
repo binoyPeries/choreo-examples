@@ -64,13 +64,13 @@ const string DEFAULT_USER = "default";
 
 service /readinglist on new http:Listener(9090) {
 
-    @http:ResourceConfig {
-        auth: [
-            {
-                jwtValidatorConfig: config
-            }
-        ]
-    }
+    // @http:ResourceConfig {
+    //     auth: [
+    //         {
+    //             jwtValidatorConfig: config
+    //         }
+    //     ]
+    // }
     resource function get books(http:Headers headers) returns Book[]|http:BadRequest|error {
         map<Book>|http:BadRequest usersBooks = check getUsersBooks(headers);
         if (usersBooks is map<Book>) {
