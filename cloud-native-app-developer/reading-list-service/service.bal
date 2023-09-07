@@ -47,6 +47,7 @@ type Key record {
 
 http:JwtValidatorConfig config = {
     issuer: "https://sts.preview-dv.choreo.dev:443/oauth2/token",
+    audience: "choreo:deployment:sandbox",
     signatureConfig: {
         jwksConfig: {
             url: "https://gateway.e1-us-east-azure.choreoapis.dev/.wellknown/jwks"
@@ -107,7 +108,7 @@ service /readinglist on new http:Listener(9090) {
 function getUsersBooks(http:Headers headers) returns map<Book>|http:BadRequest|error {
 
     string jwtAssertion = check headers.getHeader("x-jwt-assertion");
-
+    io:println(jwtAssertion);
     jwt:Payload|jwt:Error result = jwt:validate(jwtAssertion, config);
 
     if (result is jwt:Payload) {
