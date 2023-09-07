@@ -106,10 +106,12 @@ service /readinglist on new http:Listener(9090) {
 // User information is extracted from the JWT token.
 function getUsersBooks(http:Headers headers) returns map<Book>|http:BadRequest|error {
 
+    // NOTE APPROACH 1: MANUAL VALIDATION
+    // THIS APPROACH IS WORKING FINE
+
     // string jwtAssertion = check headers.getHeader("x-jwt-assertion");
     // io:println(jwtAssertion);
     // jwt:Payload|jwt:Error result = jwt:validate(jwtAssertion, config);
-
     // if (result is jwt:Payload) {
     //     io:println("Token is valid!");
     //     io:println("Claims: ", result);
@@ -123,6 +125,12 @@ function getUsersBooks(http:Headers headers) returns map<Book>|http:BadRequest|e
     //     };
     //     return badRequest;
     // }
+
+    // NOTE APPROACH 2: VALIDATION USING LIBRARY GIVEN AUTO VALIDATION SPECIFIED AT RESOURCE LEVEL (LINE 67)
+    // THIS APPROACH IS NOT WORKING, GETTING THE FOLLOWING ERROR
+    // error:
+    //     at ballerina .http .2 : authenticateResource(auth_desugar.bal: 50)
+    // asitha.reading_list_service    .0.$anonType$_0:$get $books( service.bal:    73)
 
     io:println("Getting the books of the user who is logged in.");
     string|error jwtAssertion = headers.getHeader("x-jwt-assertion");
