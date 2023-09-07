@@ -63,13 +63,13 @@ const string DEFAULT_USER = "default";
 
 service /readinglist on new http:Listener(9090) {
 
-    // @http:ResourceConfig {
-    //     auth: [
-    //         {
-    //             jwtValidatorConfig: config
-    //         }
-    //     ]
-    // }
+    @http:ResourceConfig {
+        auth: [
+            {
+                jwtValidatorConfig: config
+            }
+        ]
+    }
     resource function get books(http:Headers headers) returns Book[]|http:BadRequest|error {
         map<Book>|http:BadRequest usersBooks = check getUsersBooks(headers);
         if (usersBooks is map<Book>) {
@@ -108,33 +108,14 @@ function getUsersBooks(http:Headers headers) returns map<Book>|http:BadRequest|e
     // NOTE APPROACH 1: MANUAL VALIDATION
     // THIS APPROACH IS WORKING FINE
 
-    string jwtAssertion = check headers.getHeader("x-jwt-assertion");
-    io:println(jwtAssertion);
-    jwt:Payload|jwt:Error result = jwt:validate(jwtAssertion, config);
-    if (result is jwt:Payload) {
-        io:println("Token is valid!");
-        io:println("Claims: ", result);
-    } else {
-        io:println(result);
-        http:BadRequest badRequest = {
-            body: {
-                "error": "Bad Request",
-                "error_description": "Error while getting the JWT token"
-            }
-        };
-        return badRequest;
-    }
-
-    // NOTE APPROACH 2: VALIDATION USING LIBRARY GIVEN AUTO VALIDATION SPECIFIED AT RESOURCE LEVEL (LINE 67)
-    // THIS APPROACH IS NOT WORKING, GETTING THE FOLLOWING ERROR
-    // error:
-    //     at ballerina .http .2 : authenticateResource(auth_desugar.bal: 50)
-    // asitha.reading_list_service    .0.$anonType$_0:$get $books( service.bal:    73)
-
-    // io:println("Getting the books of the user who is logged in.");
-    // string|error jwtAssertion = headers.getHeader("x-jwt-assertion");
+    // string jwtAssertion = check headers.getHeader("x-jwt-assertion");
     // io:println(jwtAssertion);
-    // if (jwtAssertion is error) {
+    // jwt:Payload|jwt:Error result = jwt:validate(jwtAssertion, config);
+    // if (result is jwt:Payload) {
+    //     io:println("Token is valid!");
+    //     io:println("Claims: ", result);
+    // } else {
+    //     io:println(result);
     //     http:BadRequest badRequest = {
     //         body: {
     //             "error": "Bad Request",
@@ -143,6 +124,25 @@ function getUsersBooks(http:Headers headers) returns map<Book>|http:BadRequest|e
     //     };
     //     return badRequest;
     // }
+
+    // NOTE APPROACH 2: VALIDATION USING LIBRARY GIVEN AUTO VALIDATION SPECIFIED AT RESOURCE LEVEL (LINE 67)
+    // THIS APPROACH IS NOT WORKING, GETTING THE FOLLOWING ERROR
+    // error:
+    //     at ballerina .http .2 : authenticateResource(auth_desugar.bal: 50)
+    // asitha.reading_list_service    .0.$anonType$_0:$get $books( service.bal:    73)
+
+    io:println("Getting the books of the user who is logged in.");
+    string|error jwtAssertion = headers.getHeader("x-jwt-assertion");
+    io:println(jwtAssertion);
+    if (jwtAssertion is error) {
+        http:BadRequest badRequest = {
+            body: {
+                "error": "Bad Request",
+                "error_description": "Error while getting the JWT token"
+            }
+        };
+        return badRequest;
+    }
 
     [jwt:Header, jwt:Payload] [_, payload] = check jwt:decode(jwtAssertion);
     string username = payload.sub is string ? <string>payload.sub : DEFAULT_USER;
