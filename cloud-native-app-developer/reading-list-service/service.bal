@@ -16,6 +16,7 @@
 
 import ballerina/uuid;
 import ballerina/http;
+import ballerina/io;
 import ballerina/jwt;
 
 enum Status {
@@ -123,7 +124,9 @@ function getUsersBooks(http:Headers headers) returns map<Book>|http:BadRequest|e
     //     return badRequest;
     // }
 
+    io:println("Getting the books of the user who is logged in.");
     string|error jwtAssertion = headers.getHeader("x-jwt-assertion");
+    io:println(jwtAssertion);
     if (jwtAssertion is error) {
         http:BadRequest badRequest = {
             body: {
