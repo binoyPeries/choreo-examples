@@ -46,7 +46,6 @@ type Key record {
 };
 
 http:JwtValidatorConfig config = {
-    issuer: "wso2.org/products/am",
     signatureConfig: {
         jwksConfig: {
             url: "https://gateway.e1-us-east-azure.choreoapis.dev/.wellknown/jwks"
